@@ -1,0 +1,42 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configurar UTE Consumo",
+        "description": "Ingresa tus credenciales de UTE Autoservicio para obtener los datos de consumo de energía.",
+        "data": {
+          "username": "Usuario",
+          "password": "Contraseña",
+          "account_id": "ID de Cuenta (NIS)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "No se pudo conectar a UTE",
+      "invalid_auth": "Credenciales inválidas",
+      "unknown": "Error inesperado"
+    },
+    "abort": {
+      "already_configured": "Esta cuenta ya está configurada"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "peak_energy": {
+        "name": "Energía Punta"
+      },
+      "off_peak_energy": {
+        "name": "Energía Fuera de Punta"
+      },
+      "total_energy": {
+        "name": "Energía Total"
+      },
+      "efficiency": {
+        "name": "Eficiencia"
+      },
+      "billing_period": {
+        "name": "Período de Facturación"
+      }
+    }
+  }
+}

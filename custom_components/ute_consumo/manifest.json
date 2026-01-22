@@ -1,0 +1,11 @@
+{
+  "domain": "ute_consumo",
+  "name": "UTE Consumo Energía",
+  "codeowners": ["@matiasca89"],
+  "config_flow": true,
+  "documentation": "https://github.com/matiasca89/hacs-ute",
+  "issue_tracker": "https://github.com/matiasca89/hacs-ute/issues",
+  "iot_class": "cloud_polling",
+  "requirements": ["playwright==1.57.0"],
+  "version": "1.0.0"
+}

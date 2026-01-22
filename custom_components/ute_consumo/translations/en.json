@@ -1,0 +1,42 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Configure UTE Consumption",
+        "description": "Enter your UTE Self-Service credentials to get energy consumption data.",
+        "data": {
+          "username": "Username",
+          "password": "Password",
+          "account_id": "Account ID (NIS)"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not connect to UTE",
+      "invalid_auth": "Invalid credentials",
+      "unknown": "Unexpected error"
+    },
+    "abort": {
+      "already_configured": "This account is already configured"
+    }
+  },
+  "entity": {
+    "sensor": {
+      "peak_energy": {
+        "name": "Peak Energy"
+      },
+      "off_peak_energy": {
+        "name": "Off-Peak Energy"
+      },
+      "total_energy": {
+        "name": "Total Energy"
+      },
+      "efficiency": {
+        "name": "Efficiency"
+      },
+      "billing_period": {
+        "name": "Billing Period"
+      }
+    }
+  }
+}
