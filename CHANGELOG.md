@@ -2,6 +2,17 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.0] - 2026-01-22
+
+### Added
+- Daily consumption sensors calculated from cumulative values
+  - `sensor.ute_diario_punta` - Daily peak energy
+  - `sensor.ute_diario_fuera_punta` - Daily off-peak energy
+  - `sensor.ute_diario_total` - Daily total energy
+- Persistent state file to track day changes
+- Automatic delta calculation on day change (Uruguay timezone UTC-3)
+- Handles month resets correctly
+
 ## [1.1.0] - 2026-01-22
 
 ### Added
