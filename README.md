@@ -1,8 +1,19 @@
-# UTE Consumo - Home Assistant Integration
+# UTE Consumo - Home Assistant Add-on
 
 [![hacs_badge](https://img.shields.io/badge/HACS-Custom-orange.svg)](https://github.com/hacs/integration)
 
-Integración de Home Assistant para obtener datos de consumo de energía eléctrica desde el portal de autoservicio de UTE (Uruguay).
+Add-on de Home Assistant para obtener datos de consumo de energía eléctrica desde el portal de autoservicio de UTE (Uruguay).
+
+## Instalación
+
+### Como Add-on de Home Assistant
+
+1. En Home Assistant, ve a **Configuración** → **Complementos** → **Tienda de complementos**
+2. Menú ⋮ → **Repositorios**
+3. Agregar: `https://github.com/matiasca89/hacs-ute`
+4. Buscar **"UTE Consumo"** e instalar
+5. Configurar credenciales en la pestaña **Configuración**
+6. Iniciar el add-on
 
 ## Características
 
