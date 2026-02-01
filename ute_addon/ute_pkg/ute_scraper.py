@@ -165,10 +165,12 @@ class UTEScraper:
     ) -> UTEConsumoData:
         """Fetch consumption data from UTE API."""
         try:
-            # Calculate date range (first day of month to yesterday)
-            today = datetime.now(timezone.utc)
-            fecha_inicial = today.replace(day=1).strftime("%d-%m-%Y")
-            fecha_final = (today - timedelta(days=1)).strftime("%d-%m-%Y")
+            # Calculate date range (month of "yesterday" to yesterday)
+            # UTE data is day-behind; on the 1st this avoids fecha_inicial > fecha_final.
+            end_date = datetime.now(timezone.utc) - timedelta(days=1)
+            start_date = end_date.replace(day=1)
+            fecha_inicial = start_date.strftime("%d-%m-%Y")
+            fecha_final = end_date.strftime("%d-%m-%Y")
 
             # Build API URL
             data_url = (

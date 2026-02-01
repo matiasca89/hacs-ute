@@ -133,9 +133,10 @@ class UTEScraper:
 
     async def _fetch_consumption_data(self, page: Page, sp_id: str) -> UTEConsumoData:
         try:
-            today = datetime.now(timezone.utc)
-            fecha_inicial = today.replace(day=1).strftime("%d-%m-%Y")
-            fecha_final = (today - timedelta(days=1)).strftime("%d-%m-%Y")
+            end_date = datetime.now(timezone.utc) - timedelta(days=1)
+            start_date = end_date.replace(day=1)
+            fecha_inicial = start_date.strftime("%d-%m-%Y")
+            fecha_final = end_date.strftime("%d-%m-%Y")
 
             data_url = (
                 f"{UTE_SELFSERVICE_URL}/cmgraficar?"

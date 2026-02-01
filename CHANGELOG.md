@@ -2,6 +2,11 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.1] - 2026-02-01
+
+### Fixed
+- Fix date range on the 1st of the month (use month of "yesterday" so `fecha_inicial` is never after `fecha_final`).
+
 ## [1.2.0] - 2026-01-22
 
 ### Added
