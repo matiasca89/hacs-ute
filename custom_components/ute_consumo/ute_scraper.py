@@ -126,38 +126,41 @@ class UTEScraper:
             raise UTEScraperError(f"Login error: {err}") from err
 
     async def _get_sp_id(self, page: Page) -> str | None:
-        """Navigate to account and extract spId."""
         try:
-            # Navigate to account page
-            account_url = f"{UTE_SELFSERVICE_URL}/account?accountId={self._account_id}"
-            await page.goto(account_url, wait_until="domcontentloaded", timeout=60000)
+            print(f"  → Navigating to account {self._account_id}...")
 
-            # Wait for table
-            await page.wait_for_selector(".jtable", timeout=30000)
+            account_url = (
+                f"{UTE_SELFSERVICE_URL}/account"
+                f"?accountId={self._account_id}"
+            )
 
-            # Click on the account row
-            row_selector = f'tr[data-record-key="{self._account_id}"]'
-            row = page.locator(row_selector)
-            await row.wait_for(state="visible", timeout=30000)
-            await row.click()
+            # Esperamos carga completa de red
+            await page.goto(account_url, wait_until="networkidle", timeout=60000)
 
-            # Wait for the link with curva de carga (use .first as there may be multiple)
-            # Use "attached" state since the element may not be visible
-            link_selector = 'a.btn.btn-primary.btn-block[href*="cmvisualizarcurvadecarga"]'
-            link = page.locator(link_selector).first
-            await link.wait_for(state="attached", timeout=30000)
+            print("  → Waiting for supplies table...")
 
-            # Extract spId from href
-            href = await link.get_attribute("href")
-            if href:
-                match = re.search(r"spId=(\d+)", href)
-                if match:
-                    return match.group(1)
+            # Esperamos que aparezca la tabla real de suministros
+            await page.wait_for_selector("#tablaSuministros", timeout=30000)
+
+            print("  → Extracting spId...")
+
+            # Buscamos cualquier link que contenga spId
+            links = page.locator('a[href*="cmvisualizarcurvadecarga"][href*="spId="]')
+            count = await links.count()
+
+            if count == 0:
+                return None
+
+            for i in range(count):
+                href = await links.nth(i).get_attribute("href")
+                if href:
+                    match = re.search(r"spId=(\d+)", href)
+                    if match:
+                        return match.group(1)
 
             return None
 
         except Exception as err:
-            _LOGGER.error("Error getting spId: %s", err)
             raise UTEScraperError(f"Failed to get spId: {err}") from err
 
     async def _fetch_consumption_data(
