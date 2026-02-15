@@ -105,27 +105,39 @@ class UTEScraper:
             raise UTEScraperError(f"Login error: {err}") from err
 
     async def _get_sp_id(self, page: Page) -> str | None:
+        """Navigate to account and extract spId."""
         try:
             print(f"  → Navigating to account {self._account_id}...")
-            account_url = f"{UTE_SELFSERVICE_URL}/account?accountId={self._account_id}"
-            await page.goto(account_url, wait_until="domcontentloaded", timeout=60000)
 
-            await page.wait_for_selector(".jtable", timeout=30000)
+            account_url = (
+                f"{UTE_SELFSERVICE_URL}/account"
+                f"?accountId={self._account_id}"
+            )
 
-            row = page.locator(f'tr[data-record-key="{self._account_id}"]')
-            await row.wait_for(state="visible", timeout=30000)
-            await row.click()
+            # Wait for network to be idle after navigation
+            await page.goto(account_url, wait_until="networkidle", timeout=60000)
+
+            print("  → Waiting for supplies table...")
+
+            # Wait for the supplies table to appear
+            await page.wait_for_selector("#tablaSuministros", timeout=30000)
 
             print("  → Extracting spId...")
-            # Wait for element to exist (not necessarily visible)
-            link = page.locator('a.btn.btn-primary.btn-block[href*="cmvisualizarcurvadecarga"]').first
-            await link.wait_for(state="attached", timeout=30000)
 
-            href = await link.get_attribute("href")
-            if href:
-                match = re.search(r"spId=(\d+)", href)
-                if match:
-                    return match.group(1)
+            # Find any link containing spId
+            links = page.locator('a[href*="cmvisualizarcurvadecarga"][href*="spId="]')
+            count = await links.count()
+
+            if count == 0:
+                return None
+
+            for i in range(count):
+                href = await links.nth(i).get_attribute("href")
+                if href:
+                    match = re.search(r"spId=(\d+)", href)
+                    if match:
+                        return match.group(1)
+
             return None
 
         except Exception as err:
