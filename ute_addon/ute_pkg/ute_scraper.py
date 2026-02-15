@@ -126,25 +126,26 @@ class UTEScraper:
             raise UTEScraperError(f"Login error: {err}") from err
 
     async def _get_sp_id(self, page: Page) -> str | None:
+        """Navigate to account and extract spId."""
         try:
-            print(f"  → Navigating to account {self._account_id}...")
+            _LOGGER.debug("Navigating to account %s", self._account_id)
 
             account_url = (
                 f"{UTE_SELFSERVICE_URL}/account"
                 f"?accountId={self._account_id}"
             )
 
-            # Esperamos carga completa de red
+            # Wait for network to be idle after navigation
             await page.goto(account_url, wait_until="networkidle", timeout=60000)
 
-            print("  → Waiting for supplies table...")
+            _LOGGER.debug("Waiting for supplies table...")
 
-            # Esperamos que aparezca la tabla real de suministros
+            # Wait for the supplies table to appear
             await page.wait_for_selector("#tablaSuministros", timeout=30000)
 
-            print("  → Extracting spId...")
+            _LOGGER.debug("Extracting spId...")
 
-            # Buscamos cualquier link que contenga spId
+            # Find any link containing spId
             links = page.locator('a[href*="cmvisualizarcurvadecarga"][href*="spId="]')
             count = await links.count()
 
@@ -161,6 +162,7 @@ class UTEScraper:
             return None
 
         except Exception as err:
+            _LOGGER.error("Error getting spId: %s", err)
             raise UTEScraperError(f"Failed to get spId: {err}") from err
 
     async def _fetch_consumption_data(
