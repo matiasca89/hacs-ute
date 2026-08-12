@@ -88,12 +88,11 @@ class UTEScraper:
             await password_input.fill(self._password)
 
             print("  → Submitting form...")
-            await password_input.press("Enter")
-            await page.wait_for_load_state("networkidle", timeout=60000)
-
-            content = await page.content()
-            if "Cerrar sesión" in content or "cerrar sesión" in content.lower():
-                return True
+            login_button = page.get_by_role("button", name="Ingresar")
+            await login_button.click(timeout=30000)
+            logout_link = page.get_by_text(re.compile(r"Cerrar sesi.n", re.I))
+            await logout_link.first.wait_for(state="attached", timeout=30000)
+            return True
 
             raise UTEAuthError("Login failed - 'Cerrar sesión' not found")
 

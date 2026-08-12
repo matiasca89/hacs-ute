@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.2] - 2026-08-12
+
+### Fixed
+- Submit UTE login through the explicit **Ingresar** button instead of pressing Enter in the password field.
+- Wait for the authenticated session indicator rather than `networkidle`, which can time out while UTE keeps background requests open.
+- Recreate the page before retrying a failed login to avoid retrying against a stale identity-provider state.
+
 ## [1.2.1] - 2026-02-01
 
 ### Fixed

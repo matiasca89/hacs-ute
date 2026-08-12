@@ -101,20 +101,18 @@ class UTEScraper:
             password_input = page.locator('input[name="Password"]')
             await password_input.fill(self._password)
 
-            # Submit form
-            await password_input.press("Enter")
+            # Submit through the visible login control. Sending Enter to the
+            # password field can leave the identity provider waiting forever.
+            login_button = page.get_by_role("button", name="Ingresar")
+            await login_button.click(timeout=30000)
 
-            # Wait for login to complete
-            await page.wait_for_load_state("networkidle", timeout=60000)
-
-            # Check if login was successful
-            content = await page.content()
-            if "Cerrar sesión" in content or "cerrar sesión" in content.lower():
-                _LOGGER.debug("Login successful")
-                return True
-
-            _LOGGER.error("Login failed - 'Cerrar sesión' not found in page")
-            raise UTEAuthError("Login failed")
+            # The provider redirects after authenticating; waiting for
+            # networkidle is unreliable because the resulting page keeps
+            # background requests open.
+            logout_link = page.get_by_text(re.compile(r"Cerrar sesi.n", re.I))
+            await logout_link.first.wait_for(state="attached", timeout=30000)
+            _LOGGER.debug("Login successful")
+            return True
 
         except PlaywrightTimeout as err:
             _LOGGER.error("Timeout during login: %s", err)
@@ -271,6 +269,10 @@ class UTEScraper:
                             "Connection error, retrying in 30 seconds (attempt %d/3)",
                             attempt + 1,
                         )
+                        # Do not retry against a page left in an indeterminate
+                        # redirect/loading state by the identity provider.
+                        await page.close()
+                        page = await context.new_page()
                         await asyncio.sleep(30)
                         continue
                     raise
@@ -308,6 +310,9 @@ class UTEScraper:
                     return True
                 except UTEConnectionError:
                     if attempt < 2:
+                        # Reset the failed login page before retrying.
+                        await page.close()
+                        page = await context.new_page()
                         await asyncio.sleep(30)
                         continue
                     raise
