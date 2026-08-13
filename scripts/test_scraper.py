@@ -89,7 +89,7 @@ class UTEScraper:
 
             print("  → Submitting form...")
             login_button = page.get_by_role("button", name="Ingresar")
-            await login_button.click(timeout=30000)
+            await login_button.click(timeout=30000, no_wait_after=True)
             logout_link = page.get_by_text(re.compile(r"Cerrar sesi.n", re.I))
             await logout_link.first.wait_for(state="attached", timeout=30000)
             return True

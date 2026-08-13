@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.2.3] - 2026-08-13
+
+### Fixed
+- Do not wait for UTE's unreliable post-submit navigation; verify login by waiting directly for the authenticated-session indicator.
+- Recreate the entire browser context between failed login attempts, clearing stalled redirects and identity-provider session state.
+
 ## [1.2.2] - 2026-08-12
 
 ### Fixed

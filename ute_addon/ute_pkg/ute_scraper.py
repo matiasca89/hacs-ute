@@ -12,6 +12,7 @@ from typing import Any
 from playwright.async_api import (
     async_playwright,
     Browser,
+    BrowserContext,
     Page,
     TimeoutError as PlaywrightTimeout,
 )
@@ -86,6 +87,17 @@ class UTEScraper:
             await self._playwright.stop()
             self._playwright = None
 
+    async def _new_context(self, browser: Browser) -> BrowserContext:
+        """Create an isolated browser context for an UTE session."""
+        return await browser.new_context(
+            viewport={"width": 1280, "height": 720},
+            user_agent=(
+                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
+                "AppleWebKit/537.36 (KHTML, like Gecko) "
+                "Chrome/120.0.0.0 Safari/537.36"
+            ),
+        )
+
     async def _login(self, page: Page) -> bool:
         """Perform login on UTE page."""
         try:
@@ -104,7 +116,10 @@ class UTEScraper:
             # Submit through the visible login control. Sending Enter to the
             # password field can leave the identity provider waiting forever.
             login_button = page.get_by_role("button", name="Ingresar")
-            await login_button.click(timeout=30000)
+            # UTE sometimes starts a navigation which never reaches Playwright's
+            # navigation-complete state. Do not make the click wait for it; wait
+            # for the authenticated-session indicator below instead.
+            await login_button.click(timeout=30000, no_wait_after=True)
 
             # The provider redirects after authenticating; waiting for
             # networkidle is unreliable because the resulting page keeps
@@ -246,14 +261,7 @@ class UTEScraper:
     async def get_consumption_data(self) -> UTEConsumoData:
         """Get consumption data from UTE."""
         browser = await self._ensure_browser()
-        context = await browser.new_context(
-            viewport={"width": 1280, "height": 720},
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            ),
-        )
+        context = await self._new_context(browser)
 
         try:
             page = await context.new_page()
@@ -269,9 +277,11 @@ class UTEScraper:
                             "Connection error, retrying in 30 seconds (attempt %d/3)",
                             attempt + 1,
                         )
-                        # Do not retry against a page left in an indeterminate
-                        # redirect/loading state by the identity provider.
-                        await page.close()
+                        # A failed identity-provider redirect can poison the
+                        # whole context (cookies and in-flight navigation), not
+                        # only the page. Start the next retry fully isolated.
+                        await context.close()
+                        context = await self._new_context(browser)
                         page = await context.new_page()
                         await asyncio.sleep(30)
                         continue
@@ -293,14 +303,7 @@ class UTEScraper:
     async def validate_credentials(self) -> bool:
         """Validate credentials without fetching all data."""
         browser = await self._ensure_browser()
-        context = await browser.new_context(
-            viewport={"width": 1280, "height": 720},
-            user_agent=(
-                "Mozilla/5.0 (Windows NT 10.0; Win64; x64) "
-                "AppleWebKit/537.36 (KHTML, like Gecko) "
-                "Chrome/120.0.0.0 Safari/537.36"
-            ),
-        )
+        context = await self._new_context(browser)
 
         try:
             page = await context.new_page()
@@ -310,8 +313,9 @@ class UTEScraper:
                     return True
                 except UTEConnectionError:
                     if attempt < 2:
-                        # Reset the failed login page before retrying.
-                        await page.close()
+                        # Reset the whole context, including failed redirects.
+                        await context.close()
+                        context = await self._new_context(browser)
                         page = await context.new_page()
                         await asyncio.sleep(30)
                         continue
