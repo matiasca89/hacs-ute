@@ -23,6 +23,27 @@ The host Python environment does not include pytest.
 
 ---
 
+## [ERR-20260814-005] scraper_url_test_parameter
+
+**Logged**: 2026-08-14T22:06:00Z
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+The new scraper URL test omitted the nested query-parameter brackets.
+
+### Error
+```
+AssertionError: 'psId=98765' not found in generated UTE URL
+```
+
+### Resolution
+- **Resolved**: 2026-08-14T22:06:00Z
+- **Notes**: Assert the actual encoded query fragment `[psId]=98765`.
+
+---
+
 ## [ERR-20260814-004] smoke_test_shell_syntax
 
 **Logged**: 2026-08-14T21:49:00Z
