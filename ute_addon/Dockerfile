@@ -1,16 +1,12 @@
 FROM mcr.microsoft.com/playwright/python:v1.49.0-jammy
 
-ENV LANG C.UTF-8
-ENV PYTHONDONTWRITEBYTECODE 1
-ENV PYTHONUNBUFFERED 1
+ENV LANG=C.UTF-8
+ENV PYTHONDONTWRITEBYTECODE=1
+ENV PYTHONUNBUFFERED=1
 
-# Install runtime dependencies
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    jq \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install python dependencies
-RUN pip install --no-cache-dir requests playwright==1.49.0
+# Chromium comes from the base image; install its matching Python client and the
+# small Supervisor API client used by the add-on.
+RUN pip install --no-cache-dir playwright==1.49.0 requests
 
 WORKDIR /app
 

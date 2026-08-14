@@ -7,7 +7,6 @@ import logging
 import re
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Any
 
 from playwright.async_api import (
     async_playwright,
@@ -17,7 +16,14 @@ from playwright.async_api import (
     TimeoutError as PlaywrightTimeout,
 )
 
-from .const import UTE_LOGIN_URL, UTE_SELFSERVICE_URL
+from .const import (
+    CHROMIUM_ARGS,
+    ELEMENT_TIMEOUT_MS,
+    LOGIN_RETRY_DELAYS_SECONDS,
+    NAVIGATION_TIMEOUT_MS,
+    UTE_LOGIN_URL,
+    UTE_SELFSERVICE_URL,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -32,7 +38,7 @@ class UTEConsumoData:
     efficiency: float | None = None
     fecha_inicial: str | None = None
     fecha_final: str | None = None
-    raw_data: dict[str, Any] | None = None
+    sp_id: str | None = None
 
 
 class UTEScraperError(Exception):
@@ -69,12 +75,7 @@ class UTEScraper:
             self._playwright = await async_playwright().start()
             self._browser = await self._playwright.chromium.launch(
                 headless=True,
-                args=[
-                    "--no-sandbox",
-                    "--disable-setuid-sandbox",
-                    "--disable-dev-shm-usage",
-                    "--disable-gpu",
-                ],
+                args=CHROMIUM_ARGS,
             )
         return self._browser
 
@@ -102,11 +103,15 @@ class UTEScraper:
         """Perform login on UTE page."""
         try:
             _LOGGER.debug("Navigating to UTE login page")
-            await page.goto(UTE_LOGIN_URL, wait_until="domcontentloaded", timeout=60000)
+            await page.goto(
+                UTE_LOGIN_URL,
+                wait_until="domcontentloaded",
+                timeout=NAVIGATION_TIMEOUT_MS,
+            )
 
             # Fill username
             username_input = page.locator('input[name="Username"]')
-            await username_input.wait_for(state="visible", timeout=30000)
+            await username_input.wait_for(state="visible", timeout=ELEMENT_TIMEOUT_MS)
             await username_input.fill(self._username)
 
             # Fill password
@@ -119,13 +124,15 @@ class UTEScraper:
             # UTE sometimes starts a navigation which never reaches Playwright's
             # navigation-complete state. Do not make the click wait for it; wait
             # for the authenticated-session indicator below instead.
-            await login_button.click(timeout=30000, no_wait_after=True)
+            await login_button.click(timeout=ELEMENT_TIMEOUT_MS, no_wait_after=True)
 
             # The provider redirects after authenticating; waiting for
             # networkidle is unreliable because the resulting page keeps
             # background requests open.
             logout_link = page.get_by_text(re.compile(r"Cerrar sesi.n", re.I))
-            await logout_link.first.wait_for(state="attached", timeout=30000)
+            await logout_link.first.wait_for(
+                state="attached", timeout=ELEMENT_TIMEOUT_MS
+            )
             _LOGGER.debug("Login successful")
             return True
 
@@ -143,22 +150,26 @@ class UTEScraper:
         try:
             # Navigate to account page
             account_url = f"{UTE_SELFSERVICE_URL}/account?accountId={self._account_id}"
-            await page.goto(account_url, wait_until="domcontentloaded", timeout=60000)
+            await page.goto(
+                account_url,
+                wait_until="domcontentloaded",
+                timeout=NAVIGATION_TIMEOUT_MS,
+            )
 
             # Wait for table
-            await page.wait_for_selector(".jtable", timeout=30000)
+            await page.wait_for_selector(".jtable", timeout=ELEMENT_TIMEOUT_MS)
 
             # Click on the account row
             row_selector = f'tr[data-record-key="{self._account_id}"]'
             row = page.locator(row_selector)
-            await row.wait_for(state="visible", timeout=30000)
+            await row.wait_for(state="visible", timeout=ELEMENT_TIMEOUT_MS)
             await row.click()
 
             # Wait for the link with curva de carga (use .first as there may be multiple)
             # Use "attached" state since the element may not be visible
             link_selector = 'a.btn.btn-primary.btn-block[href*="cmvisualizarcurvadecarga"]'
             link = page.locator(link_selector).first
-            await link.wait_for(state="attached", timeout=30000)
+            await link.wait_for(state="attached", timeout=ELEMENT_TIMEOUT_MS)
 
             # Extract spId from href
             href = await link.get_attribute("href")
@@ -197,7 +208,11 @@ class UTEScraper:
             _LOGGER.debug("Fetching data from: %s", data_url)
 
             # Navigate to JSON endpoint
-            await page.goto(data_url, wait_until="domcontentloaded", timeout=60000)
+            await page.goto(
+                data_url,
+                wait_until="domcontentloaded",
+                timeout=NAVIGATION_TIMEOUT_MS,
+            )
 
             # Extract JSON from page
             body = page.locator("body")
@@ -245,10 +260,7 @@ class UTEScraper:
                 efficiency=round(efficiency, 2) if efficiency else None,
                 fecha_inicial=fecha_inicial,
                 fecha_final=fecha_final,
-                raw_data={
-                    "json_response": json_data,
-                    "sp_id": sp_id,
-                },
+                sp_id=sp_id,
             )
 
         except json.JSONDecodeError as err:
@@ -258,70 +270,53 @@ class UTEScraper:
             _LOGGER.error("Error fetching consumption data: %s", err)
             raise UTEScraperError(f"Failed to fetch data: {err}") from err
 
+    async def _authenticated_page(self) -> tuple[BrowserContext, Page]:
+        """Create a fresh authenticated UTE session, retrying connection failures."""
+        browser = await self._ensure_browser()
+
+        for attempt in range(len(LOGIN_RETRY_DELAYS_SECONDS) + 1):
+            context = await self._new_context(browser)
+            try:
+                page = await context.new_page()
+                await self._login(page)
+                return context, page
+            except UTEConnectionError:
+                await context.close()
+                if attempt == len(LOGIN_RETRY_DELAYS_SECONDS):
+                    raise
+                delay = LOGIN_RETRY_DELAYS_SECONDS[attempt]
+                _LOGGER.warning(
+                    "Connection error, retrying in %s seconds (attempt %d/%d)",
+                    delay,
+                    attempt + 1,
+                    len(LOGIN_RETRY_DELAYS_SECONDS) + 1,
+                )
+                await asyncio.sleep(delay)
+            except Exception:
+                await context.close()
+                raise
+
+        raise UTEConnectionError("Unable to authenticate with UTE")
+
     async def get_consumption_data(self) -> UTEConsumoData:
         """Get consumption data from UTE."""
-        browser = await self._ensure_browser()
-        context = await self._new_context(browser)
-
+        context, page = await self._authenticated_page()
         try:
-            page = await context.new_page()
-
-            # Login with retries
-            for attempt in range(3):
-                try:
-                    await self._login(page)
-                    break
-                except UTEConnectionError:
-                    if attempt < 2:
-                        _LOGGER.warning(
-                            "Connection error, retrying in 30 seconds (attempt %d/3)",
-                            attempt + 1,
-                        )
-                        # A failed identity-provider redirect can poison the
-                        # whole context (cookies and in-flight navigation), not
-                        # only the page. Start the next retry fully isolated.
-                        await context.close()
-                        context = await self._new_context(browser)
-                        page = await context.new_page()
-                        await asyncio.sleep(30)
-                        continue
-                    raise
-
-            # Get spId
             sp_id = await self._get_sp_id(page)
             if not sp_id:
                 raise UTEScraperError("Could not extract spId from account")
-
-            # Fetch consumption data
-            data = await self._fetch_consumption_data(page, sp_id)
-
-            return data
-
+            return await self._fetch_consumption_data(page, sp_id)
         finally:
             await context.close()
 
     async def validate_credentials(self) -> bool:
         """Validate credentials without fetching all data."""
-        browser = await self._ensure_browser()
-        context = await self._new_context(browser)
-
+        context: BrowserContext | None = None
         try:
-            page = await context.new_page()
-            for attempt in range(3):
-                try:
-                    await self._login(page)
-                    return True
-                except UTEConnectionError:
-                    if attempt < 2:
-                        # Reset the whole context, including failed redirects.
-                        await context.close()
-                        context = await self._new_context(browser)
-                        page = await context.new_page()
-                        await asyncio.sleep(30)
-                        continue
-                    raise
-            return False
+            context, _ = await self._authenticated_page()
+            return True
         except UTEAuthError:
             return False
         finally:
-            await context.close()
+            if context:
+                await context.close()

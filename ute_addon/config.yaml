@@ -1,5 +1,5 @@
 name: "UTE Consumo"
-version: "1.2.3"
+version: "1.3.0"
 slug: "ute_consumo"
 description: "Scraper de consumo de energía UTE (Uruguay)"
 url: "https://github.com/matiasca89/hacs-ute"

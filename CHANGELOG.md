@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.0] - 2026-08-14
+
+### Changed
+- Simplified the repository to the Home Assistant add-on only; removed the unused HACS custom integration and duplicate standalone scraper.
+- Reuse the Chromium process across polling cycles while creating a clean browser context for every UTE session and retry.
+- Centralized scraper timeouts, retry delays, and Chromium flags.
+- Simplified sensor publishing through a single declarative definition and made daily-state writes atomic.
+
+### Fixed
+- Retain the Playwright Python client explicitly in the add-on image, pinned to its Chromium base-image version.
+
+### Added
+- Unit tests for daily consumption and monthly-counter reset calculations.
+
 ## [1.2.3] - 2026-08-13
 
 ### Fixed
