@@ -23,6 +23,27 @@ The host Python environment does not include pytest.
 
 ---
 
+## [ERR-20260814-006] e2e_state_directory_missing
+
+**Logged**: 2026-08-14T22:10:00Z
+**Priority**: medium
+**Status**: resolved
+**Area**: backend
+
+### Summary
+The add-on completed a live scrape but could not persist state when `/data` was absent in a standalone container.
+
+### Error
+```
+Unable to save state: [Errno 2] No such file or directory: '/data/ute_state.tmp'
+```
+
+### Resolution
+- **Resolved**: 2026-08-14T22:10:00Z
+- **Notes**: Create the state directory before the atomic write and test the missing-directory case.
+
+---
+
 ## [ERR-20260814-005] scraper_url_test_parameter
 
 **Logged**: 2026-08-14T22:06:00Z

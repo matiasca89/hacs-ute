@@ -56,7 +56,7 @@ class TestStateAndPublishing(unittest.TestCase):
     def test_save_and_load_state_are_atomic_and_round_trip(self) -> None:
         state = {"last_date": "2026-08-14", "daily_total": 6.5}
         with TemporaryDirectory() as directory:
-            state_file = Path(directory) / "ute_state.json"
+            state_file = Path(directory) / "data" / "ute_state.json"
             with patch.object(main, "STATE_FILE", state_file):
                 main.save_state(state)
                 self.assertEqual(main.load_state(), state)

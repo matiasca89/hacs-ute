@@ -55,6 +55,7 @@ def save_state(state: dict[str, Any]) -> None:
     """Atomically persist daily-consumption state."""
     temporary_file = STATE_FILE.with_suffix(".tmp")
     try:
+        STATE_FILE.parent.mkdir(parents=True, exist_ok=True)
         with temporary_file.open("w", encoding="utf-8") as file:
             json.dump(state, file, separators=(",", ":"))
         temporary_file.replace(STATE_FILE)
