@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.1] - 2026-08-14
+
+### Fixed
+- Create the persistent state directory before writing daily consumption data, so the add-on also runs correctly when `/data` is initially absent.
+
+### Verified
+- End-to-end run with a real UTE scrape and an emulated Home Assistant Supervisor: all sensor updates were accepted and state persistence succeeded.
+
 ## [1.3.0] - 2026-08-14
 
 ### Changed
