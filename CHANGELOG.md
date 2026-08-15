@@ -2,6 +2,28 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.3.5] - 2026-08-15
+
+### Fixed
+- Publish this changelog alongside the add-on so Home Assistant can display it in the update dialog.
+
+## [1.3.4] - 2026-08-15
+
+### Fixed
+- Retry transient UTE network changes during login instead of waiting until the next scan interval.
+- Recalculate daily consumption on every scrape from the previous-day baseline.
+
+## [1.3.3] - 2026-08-15
+
+### Changed
+- Reduced the add-on image from 944 MB to 329 MB by using Python slim and Chromium headless shell only.
+- Added automatic build, test and browser smoke checks on every push and pull request.
+
+## [1.3.2] - 2026-08-15
+
+### Changed
+- Close Chromium after each scrape to free memory during the scan interval.
+
 ## [1.3.1] - 2026-08-14
 
 ### Fixed
