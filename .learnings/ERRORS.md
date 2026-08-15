@@ -167,3 +167,66 @@ Use a multiline Python script or a normal synchronous one-liner for diagnostics.
 - **Notes**: Replaced with a valid multiline lifecycle verification.
 
 ---
+
+## [ERR-20260815-002] docker_slim_image_build
+
+**Logged**: 2026-08-15T07:30:00Z
+**Priority**: medium
+**Status**: resolved
+**Area**: infra
+
+### Summary
+Docker could not export the slim-image candidate because the host filesystem ran out of space.
+
+### Error
+```
+failed to write compressed diff: no space left on device
+```
+
+### Context
+- Building the Python slim + Chromium candidate locally.
+- Host disk had 417 MB free; Docker reported 1.9 GB of reclaimable build cache.
+
+### Suggested Fix
+Prune only unused Docker build cache and test images, then repeat the full verification.
+
+### Metadata
+- Reproducible: yes
+- Related Files: ute_addon/Dockerfile
+
+### Resolution
+- **Resolved**: 2026-08-15T07:34:00Z
+- **Notes**: Removed only unused test images and build cache, then completed the verification.
+
+---
+
+## [ERR-20260815-003] slim_smoke_test_dependency
+
+**Logged**: 2026-08-15T07:33:00Z
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+The slim image intentionally lacks the `pgrep` utility used by a diagnostic-only smoke test.
+
+### Error
+```
+FileNotFoundError: [Errno 2] No such file or directory: 'pgrep'
+```
+
+### Context
+- Chromium had already launched successfully.
+
+### Suggested Fix
+Assert browser startup and `UTEScraper.close()` state from Python rather than installing process-inspection tools.
+
+### Metadata
+- Reproducible: yes
+- Related Files: ute_addon/Dockerfile
+
+### Resolution
+- **Resolved**: 2026-08-15T07:33:00Z
+- **Notes**: The automated smoke test now uses only Python and Playwright.
+
+---

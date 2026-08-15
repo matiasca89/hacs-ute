@@ -1,12 +1,17 @@
-FROM mcr.microsoft.com/playwright/python:v1.49.0-jammy
+FROM python:3.10-slim-bookworm
 
 ENV LANG=C.UTF-8
 ENV PYTHONDONTWRITEBYTECODE=1
 ENV PYTHONUNBUFFERED=1
 
-# Chromium comes from the base image; install its matching Python client and the
-# small Supervisor API client used by the add-on.
-RUN pip install --no-cache-dir playwright==1.49.0 requests
+# Install only Chromium and the system libraries it requires.  The official
+# Playwright image bundles Chromium, Firefox and WebKit; this add-on uses only
+# Chromium.
+ENV PLAYWRIGHT_BROWSERS_PATH=/ms-playwright
+
+RUN pip install --no-cache-dir playwright==1.49.0 requests \
+    && playwright install --with-deps --only-shell chromium \
+    && rm -rf /var/lib/apt/lists/* /root/.cache
 
 WORKDIR /app
 
