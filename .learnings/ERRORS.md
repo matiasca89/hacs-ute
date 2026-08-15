@@ -137,3 +137,33 @@ ModuleNotFoundError: No module named 'playwright'
 - **Notes**: Build and run the tests inside the add-on image.
 
 ---
+## [ERR-20260815-001] docker_diagnostic_command
+
+**Logged**: 2026-08-15T07:25:00Z
+**Priority**: low
+**Status**: resolved
+**Area**: tests
+
+### Summary
+An inline Python diagnostic used an invalid one-line async function definition.
+
+### Error
+```
+SyntaxError: invalid syntax
+```
+
+### Context
+- Command attempted to define `async def` after semicolon-separated statements.
+
+### Suggested Fix
+Use a multiline Python script or a normal synchronous one-liner for diagnostics.
+
+### Metadata
+- Reproducible: yes
+- Related Files: ute_addon/tests/test_main.py
+
+### Resolution
+- **Resolved**: 2026-08-15T07:25:00Z
+- **Notes**: Replaced with a valid multiline lifecycle verification.
+
+---

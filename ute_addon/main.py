@@ -197,6 +197,12 @@ async def main() -> None:
                 )
             except Exception as err:
                 LOGGER.error("Scrape failed: %s", err)
+            finally:
+                # A Chromium process consumes substantially more memory than the
+                # add-on itself.  Scrapes are minutes apart, so keep it alive
+                # only for the duration of one scrape and release its memory
+                # between updates.  UTEScraper starts it again on demand.
+                await scraper.close()
             await asyncio.sleep(interval_seconds)
     finally:
         session.close()

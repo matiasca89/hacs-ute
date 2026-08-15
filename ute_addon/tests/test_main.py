@@ -1,13 +1,14 @@
 """Unit tests for add-on calculations without UTE or Home Assistant access."""
 from __future__ import annotations
 
+import asyncio
 import importlib.util
 from datetime import datetime
 import json
 from pathlib import Path
 from tempfile import TemporaryDirectory
 import unittest
-from unittest.mock import MagicMock, patch
+from unittest.mock import AsyncMock, MagicMock, patch
 
 
 MODULE_PATH = Path(__file__).parents[1] / "main.py"
@@ -92,3 +93,35 @@ class TestStateAndPublishing(unittest.TestCase):
         )
         self.assertEqual(efficiency_call.kwargs["json"]["attributes"]["unit_of_measurement"], "%")
         response.raise_for_status.assert_called()
+
+
+class TestAddonLifecycle(unittest.IsolatedAsyncioTestCase):
+    async def test_main_releases_browser_after_each_scrape(self) -> None:
+        config = {
+            "username": "user",
+            "password": "password",
+            "account_id": "account",
+            "scan_interval": 60,
+        }
+        scraper = MagicMock()
+        scraper.get_consumption_data = AsyncMock(
+            return_value=main.UTEConsumoData(total_energy_kwh=3.0)
+        )
+        scraper.close = AsyncMock()
+
+        async def stop_after_first_cycle(_: float) -> None:
+            raise asyncio.CancelledError
+
+        with (
+            patch.object(main, "get_config", return_value=config),
+            patch.object(main, "UTEScraper", return_value=scraper),
+            patch.object(main, "load_state", return_value={}),
+            patch.object(main, "save_state"),
+            patch.object(main, "publish_data"),
+            patch.object(main.asyncio, "sleep", side_effect=stop_after_first_cycle),
+        ):
+            with self.assertRaises(asyncio.CancelledError):
+                await main.main()
+
+        # Once after the scrape and once while shutting down.
+        self.assertEqual(scraper.close.await_count, 2)
