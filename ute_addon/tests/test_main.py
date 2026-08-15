@@ -52,6 +52,23 @@ class TestDailyConsumption(unittest.TestCase):
 
         self.assertEqual(daily, {"peak": 3.0, "off_peak": 3.0, "total": 6.0})
 
+    def test_daily_consumption_updates_when_ute_posts_later_in_the_day(self) -> None:
+        state = {
+            "last_date": "2026-08-14",
+            "last_values": {"peak": 0.0, "off_peak": 0.0, "total": 88.57},
+        }
+        with patch.object(main, "datetime") as mock_datetime:
+            mock_datetime.now.return_value = datetime(2026, 8, 15, tzinfo=main.URUGUAY_TZ)
+            first_daily, state = main.calculate_daily_consumption(
+                main.UTEConsumoData(0.0, 0.0, 88.57), state
+            )
+            updated_daily, _ = main.calculate_daily_consumption(
+                main.UTEConsumoData(0.0, 0.0, 91.15), state
+            )
+
+        self.assertEqual(first_daily["total"], 0.0)
+        self.assertEqual(updated_daily["total"], 2.58)
+
 
 class TestStateAndPublishing(unittest.TestCase):
     def test_save_and_load_state_are_atomic_and_round_trip(self) -> None:

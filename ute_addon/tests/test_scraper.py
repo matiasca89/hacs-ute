@@ -63,6 +63,13 @@ class TestConsumptionResponse(unittest.IsolatedAsyncioTestCase):
 
 
 class TestAuthenticationRetries(unittest.IsolatedAsyncioTestCase):
+    async def test_network_changed_is_retried_as_connection_error(self) -> None:
+        page = MagicMock()
+        page.goto = AsyncMock(side_effect=Exception("net::ERR_NETWORK_CHANGED"))
+
+        with self.assertRaises(UTEConnectionError):
+            await UTEScraper("user", "password", "account")._login(page)
+
     async def test_connection_failure_recreates_context_before_retry(self) -> None:
         scraper = UTEScraper("user", "password", "account")
         first_context, second_context = FakeContext(), FakeContext()

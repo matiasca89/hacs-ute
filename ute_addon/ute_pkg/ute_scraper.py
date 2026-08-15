@@ -26,6 +26,12 @@ from .const import (
 )
 
 _LOGGER = logging.getLogger(__name__)
+_TRANSIENT_NETWORK_ERRORS = (
+    "ERR_NETWORK_CHANGED",
+    "ERR_CONNECTION_",
+    "ERR_INTERNET_DISCONNECTED",
+    "ERR_NAME_NOT_RESOLVED",
+)
 
 
 @dataclass
@@ -143,6 +149,8 @@ class UTEScraper:
             raise
         except Exception as err:
             _LOGGER.error("Error during login: %s", err)
+            if any(error in str(err) for error in _TRANSIENT_NETWORK_ERRORS):
+                raise UTEConnectionError("Temporary network error connecting to UTE") from err
             raise UTEScraperError(f"Login error: {err}") from err
 
     async def _get_sp_id(self, page: Page) -> str | None:

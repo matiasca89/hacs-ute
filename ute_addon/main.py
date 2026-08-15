@@ -66,29 +66,39 @@ def save_state(state: dict[str, Any]) -> None:
 def calculate_daily_consumption(
     current: UTEConsumoData, state: dict[str, Any]
 ) -> tuple[dict[str, float | None], dict[str, Any]]:
-    """Calculate yesterday's consumption from cumulative monthly values."""
+    """Calculate the current day's use from the monthly cumulative values."""
     today = datetime.now(URUGUAY_TZ).strftime("%Y-%m-%d")
     current_values = {
         "peak": current.peak_energy_kwh,
         "off_peak": current.off_peak_energy_kwh,
         "total": current.total_energy_kwh,
     }
-    daily = {
-        "peak": state.get("daily_peak"),
-        "off_peak": state.get("daily_off_peak"),
-        "total": state.get("daily_total"),
-    }
     previous_values = state.get("last_values", {})
+    baseline = state.get("daily_baseline")
+
+    if state.get("last_date") and not baseline:
+        # Upgrade state written by earlier add-on versions, which retained only
+        # the previous cumulative values.
+        baseline = previous_values
 
     if state.get("last_date") and state["last_date"] != today:
+        # Keep the final cumulative reading from yesterday as today's baseline.
+        # UTE often publishes yesterday's last reading a few hours after
+        # midnight, so the daily value must be recalculated on every scrape.
+        baseline = previous_values
+
+    if baseline:
         daily = {
-            key: _daily_delta(current_values[key], previous_values.get(key))
+            key: _daily_delta(current_values[key], baseline.get(key))
             for key in current_values
         }
+    else:
+        daily = {"peak": None, "off_peak": None, "total": None}
 
     new_state = {
         "last_date": today,
         "last_values": current_values,
+        "daily_baseline": baseline or current_values,
         "daily_peak": daily["peak"],
         "daily_off_peak": daily["off_peak"],
         "daily_total": daily["total"],
