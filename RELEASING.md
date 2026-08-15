@@ -7,9 +7,11 @@
    version: "X.Y.Z"
    ```
 
-2. **Update `CHANGELOG.md`**
-   - Add new section with version and date
+2. **Update both changelogs**
+   - Add a dated section to the root `CHANGELOG.md` for GitHub releases.
+   - Add a section with the exact version to `ute_addon/CHANGELOG.md`; this is the file shown by Home Assistant.
    - Document all changes (Added/Changed/Fixed/Removed)
+   - The automated verification rejects a version that lacks this add-on changelog entry.
 
 3. **Commit changes**
    ```bash
