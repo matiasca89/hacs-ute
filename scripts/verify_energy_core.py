@@ -13,6 +13,7 @@ import json
 import os
 import secrets
 import sys
+import time
 from pathlib import Path
 from types import SimpleNamespace
 
@@ -61,6 +62,21 @@ def authenticate() -> str:
     response.raise_for_status()
     assert response.json()["time_zone"] == "America/Montevideo"
     print("Real isolated Core:", response.json()["version"])
+    # The onboarding route appears before startup tasks/Recorder have finished.
+    # Do not treat HTTP readiness as readiness to verify queued statistics.
+    deadline = time.monotonic() + 120
+    while time.monotonic() < deadline:
+        response = session.get(BASE + "/api/core/state", timeout=10)
+        response.raise_for_status()
+        readiness = response.json()
+        if readiness.get("state") == "RUNNING" and not readiness.get(
+            "recorder_state", {}
+        ).get("migration_in_progress", True):
+            print("Core RUNNING and Recorder migration complete: OK")
+            break
+        time.sleep(1)
+    else:
+        raise RuntimeError("Isolated Core/Recorder did not finish startup")
     return token
 
 
