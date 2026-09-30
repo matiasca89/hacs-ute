@@ -2,6 +2,23 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.4.0] - 2026-09-29
+
+### Fixed
+- Use America/Montevideo for the previous completed consumption day, including UTC/local midnight and month/year boundaries.
+- Read daily consumption from date-specific UTE responses instead of subtracting mutable monthly totals; decreases are never fabricated monthly resets.
+- Treat absent/malformed consumption as unavailable rather than zero and validate response date ranges.
+
+### Added
+- Account-isolated external Energy statistics at the actual consumption date, with modern `mean_type`/`unit_class` metadata and recorder read-back verification.
+- Persistent dated ledger, idempotent imports, correction-aware cumulative sums and recovery of pending consumption dates after outages.
+- Fail-closed protections for corrupt state, failed persistence, missing days and recorder history exceeding the available ledger.
+- `import_statistics` option (default true); requires Home Assistant Core 2026.9+.
+
+### Migration
+- Existing daily/monthly entity IDs remain for display, but no longer claim cumulative energy state classes. Select the new «UTE Consumo diario» external statistic for Energy after updating; do not select the monthly display sensor.
+- Legacy history and Energy preferences are not deleted or rewritten. The new series starts with verified daily UTE values, not old sensor sums. Daily-resolution values do not describe actual hourly consumption.
+
 ## [1.3.5] - 2026-08-15
 
 ### Fixed

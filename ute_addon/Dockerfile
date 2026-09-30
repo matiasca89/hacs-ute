@@ -13,6 +13,9 @@ RUN pip install --no-cache-dir playwright==1.49.0 requests \
     && playwright install --with-deps --only-shell chromium \
     && rm -rf /var/lib/apt/lists/* /root/.cache
 
+# Keep API dependencies separate from the large browser installation layer.
+RUN pip install --no-cache-dir websockets==15.0.1
+
 WORKDIR /app
 
 # Copy scraper package
